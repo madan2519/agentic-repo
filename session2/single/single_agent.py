@@ -24,10 +24,11 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 from langchain.agents import create_agent
 from langchain_core.prompts import PromptTemplate
 # from langchain_core.messages import HumanMessage, SystemMessage
-from tools import tools
+from tool import tools
 
-# Single source of truth for the system prompt used by both the agent prompt
-# and direct model invocation helper. This avoids duplicating the same text.
+from middle_ware import enhance_final_output  # Your custom middleware function
+
+
 SYSTEM_CONTENT = """
 You are a financial assistant.
 
@@ -45,39 +46,30 @@ If the user asks for an exchange rate:
 - Extract the target currency rate from the returned JSON.
 - Clearly state the numeric exchange rate in the Final Answer.
 
+Rules:
+- If both base and target currencies are mentioned, never ask clarifying questions.
+- Always call latest_exchange_rates with base and symbols.
+- Assume real-time spot rates.
+- Do not answer without using the tool.
+
+
 Question: {input}
 Thought: {agent_scratchpad}
 
 """
 
-# SYSTEM_CONTENT = """
-# You are a financial assistant.
+# Flip this to False to disable all middleware (A/B demo in class)
+# WITH_MIDDLEWARE = True
+# WITH_MIDDLEWARE = False
 
-# You have access to tools that return structured JSON data.
+# middleware = [enhance_final_output] if WITH_MIDDLEWARE else []
 
-# When you call a tool:
-# - Carefully read the Observation.
-# - If the Observation contains JSON, parse it mentally.
-# - Extract the specific values needed to answer the question.
-# - NEVER respond with generic success messages.
-# - ALWAYS include actual values from the tool output in the Final Answer.
- 
-# If the user asks for an exchange rate:
-# - Call latest_exchange_rates with the correct base currency.
-# - Extract the target currency rate from the returned JSON.
-# - Clearly state the numeric exchange rate in the Final Answer.
-
-# Rules:
-# - If both base and target currencies are mentioned, never ask clarifying questions.
-# - Always call latest_exchange_rates with base and symbols.
-# - Assume real-time spot rates.
-# - Do not answer without using the tool.
-
-
-# Question: {input}
-# Thought: {agent_scratchpad}
-
-# """
+# agent = create_agent(
+#     llm,
+#     tools=tools,                    # your latest_exchange_rates tool list
+#     system_prompt=SYSTEM_CONTENT,   # your existing system rules
+#     middleware=middleware,          # <— the new bit
+# )
 
 agent = create_agent(
     llm, tools=tools, system_prompt=SYSTEM_CONTENT)

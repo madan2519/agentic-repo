@@ -44,11 +44,11 @@ judge_prompt = ChatPromptTemplate.from_messages(
         ("system",
          "You are a strict evaluator. Assess the ASSISTANT_ANSWER against the USER_QUESTION. "
          "Return STRICT JSON ONLY with this schema and NO extra text:\n"
-         "{\n"
+         "{{\n"
          '  "decision": "pass" | "fail",\n'
          '  "score": float,             // 0.0 to 1.0\n'
          '  "feedback": "string"        // concrete, actionable rewrite guidance\n'
-         "}\n"
+         "}}\n"
          "Rubric: correctness (factual, on-topic), completeness (addresses all parts), "
          "safety (no harmful/unsafe guidance), and clarity/conciseness."),
         ("human",
@@ -145,6 +145,9 @@ if __name__ == "__main__":
     print("✅ Reflective Agent (LangChain) ready.")
     print("Model:", MODEL_ID)
     print("Ask a question (or 'exit'):\n")
+    # Calculate 15 * 7 and explain the multiplication process
+    # What is the capital of France and explain why it's important?
+
     while True:
         try:
             q = input("You: ").strip()

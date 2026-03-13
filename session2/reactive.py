@@ -6,6 +6,7 @@ from typing import Optional
 try:
     from dotenv import load_dotenv  # pip install python-dotenv
     load_dotenv()
+    print("✅ Loaded .env file.")
 except Exception:
     pass
 
@@ -45,7 +46,9 @@ def reactive_response(question: str, *, system_hint: Optional[str] = None) -> st
         )
         return (custom_prompt | llm | StrOutputParser()).invoke({"question": question})
 
-    return chain.invoke({"question": question})
+    chain_output = chain.invoke({"question": question})
+    print("Chain output:", chain_output)  # Debug: see raw model output
+    return chain_output
 
 
 if __name__ == "__main__":
@@ -54,17 +57,17 @@ if __name__ == "__main__":
     print("Type your question (or 'exit'):\n")
     while True:
         try:
-            q = input("You: ").strip()
+            query = input("You: ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nExiting.")
+            print("\nExisting.")
             break
 
-        if not q or q.lower() in {"exit", "quit"}:
+        if not query or query.lower() in {"exit", "quit"}:
             print("Bye!")
             break
 
         try:
-            ans = reactive_response(q)
+            ans = reactive_response(query)
             print(f"Assistant: {ans}\n")
         except Exception as e:
             print("Error:", e)

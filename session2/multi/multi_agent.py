@@ -24,10 +24,12 @@ from tools import (
 # Models (shared)
 # -------------------------
 MODEL_ID = os.getenv("LLM_MODEL", "gpt-4o-mini")
+
+llm_connection = ChatOpenAI(model=MODEL_ID, temperature=0)  # shared connection for all agents
 # Lower temperature for more deterministic orchestration
-researcher_llm = ChatOpenAI(model=MODEL_ID, temperature=0)
-coder_llm       = ChatOpenAI(model=MODEL_ID, temperature=0)
-reviewer_llm    = ChatOpenAI(model=MODEL_ID, temperature=0)
+researcher_llm = llm_connection
+coder_llm       = llm_connection
+reviewer_llm    = llm_connection
 
 # -------------------------
 # Role Agents

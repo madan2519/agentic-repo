@@ -75,12 +75,12 @@ planner_prompt = ChatPromptTemplate.from_messages(
             " - calculator(expression: str)\n"
             " - respond(text: str)  # use when a direct written answer is enough\n\n"
             "Return STRICT JSON with this schema:\n"
-            "{\n"
+            "{{\n"
             '  "steps": [\n'
-            '    {"id": 1, "action": "get_weather" | "calculator" | "respond", "args": { ... }},\n'
-            '    {"id": 2, "action": "...", "args": { ... }}\n'
+            '    {{"id": 1, "action": "get_weather" | "calculator" | "respond", "args": {{ ... }}}},\n'
+            '    {{"id": 2, "action": "...", "args": {{ ... }}}}\n'
             "  ]\n"
-            "}\n"
+            "}}\n"
             "Do not include explanations or extra keys—JSON only."
         ),
         ("human", "Task: {task}")
@@ -88,6 +88,7 @@ planner_prompt = ChatPromptTemplate.from_messages(
 )
 
 planner_chain = planner_prompt | llm | JsonOutputParser()  # strict JSON parsing
+
 
 
 # -------------------------
@@ -151,10 +152,10 @@ summarizer_chain = summarizer_prompt | llm | StrOutputParser()
 
 
 def plan_execute_answer(user_task: str) -> str:
-    """End-to-end: plan -> execute -> summarize."""
     # 1) Plan
     try:
         plan = planner_chain.invoke({"task": user_task})
+        # print("Generated Plan:", json.dumps(plan, ensure_ascii=False, indent=2))  # Debug: see the raw plan
         # planner_chain already returns a Python dict via JsonOutputParser
         if isinstance(plan, str):
             plan = json.loads(plan)
@@ -179,6 +180,7 @@ if __name__ == "__main__":
     print("✅ Planning Agent (LangChain) ready.")
     print("Model:", MODEL_ID)
     print("Type your task (or 'exit'):\n")
+    print("What's the weather in Chennai and calculate 12 + 5?\n")
 
     while True:
         try:

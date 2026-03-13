@@ -32,8 +32,8 @@ def run_mas(user_task: str, max_fix_loops: int = 1) -> dict:
     trace = {}
 
     # 1) Researcher
-    r_state = researcher_agent.invoke({"messages": [{"role": "user", "content": user_task}]})
-    r_spec = extract_content(r_state)
+    researcher_state = researcher_agent.invoke({"messages": [{"role": "user", "content": user_task}]})
+    r_spec = extract_content(researcher_state)
     trace["researcher_spec"] = r_spec
 
     # 2) Coder (first pass)
@@ -41,8 +41,8 @@ def run_mas(user_task: str, max_fix_loops: int = 1) -> dict:
         {"role": "system", "content": f"Researcher SPEC:\n{r_spec}"},
         {"role": "user", "content": "Produce the solution. Use tools if needed."},
     ]
-    c_state = coder_agent.invoke({"messages": coder_prompt})
-    c_solution = extract_content(c_state)
+    coder_state = coder_agent.invoke({"messages": coder_prompt})
+    c_solution = extract_content(coder_state)
     trace["coder_solution_v1"] = c_solution
 
     # 3) Reviewer
@@ -50,8 +50,8 @@ def run_mas(user_task: str, max_fix_loops: int = 1) -> dict:
         {"role": "system", "content": f"SPEC:\n{r_spec}\n\nSOLUTION:\n{c_solution}"},
         {"role": "user", "content": "Review and reply with PASS or FAIL and short feedback."},
     ]
-    v_state = reviewer_agent.invoke({"messages": review_prompt})
-    verdict = extract_content(v_state)
+    reviewer_state = reviewer_agent.invoke({"messages": review_prompt})
+    verdict = extract_content(reviewer_state)
     trace["reviewer_verdict_v1"] = verdict
 
     # 4) Optional fix loop if FAIL detected
