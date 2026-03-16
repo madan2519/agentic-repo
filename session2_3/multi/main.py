@@ -83,6 +83,7 @@ if __name__ == "__main__":
     print("Examples:\n"
           "  • Plan a short 1-day itinerary for Chennai including weather and compute a budget: 2 meals at 300 each + cab 750.\n"
           "  • Given the task 'Compute 12*(5+2) and explain the choice of method briefly'.\n")
+    # What is the area of a circle with radius 5 meters, and verify the calculation
     try:
         while True:
             task = input("Task (or 'exit'): ").strip()

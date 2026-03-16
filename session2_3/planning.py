@@ -10,6 +10,8 @@ try:
 except Exception:
     pass
 
+from langsmith import trace
+
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
@@ -44,11 +46,11 @@ def calculator(expression: str) -> str:
         return f"Error: {e}"
 
 
+
 # Map action name -> callable (what the executor can run)
 ACTION_REGISTRY = {
     "get_weather": lambda args: get_weather.invoke(args) if isinstance(args, dict) else get_weather.invoke({"city": str(args)}),
-    "calculator": lambda args: calculator.invoke({"expression": str(args)}),
-    # "respond" will be handled inside executor (no tool call)
+    "calculator": lambda args: calculator.invoke(args),
 }
 
 
@@ -73,7 +75,6 @@ planner_prompt = ChatPromptTemplate.from_messages(
             "Given a user task, break it into 2–5 minimal steps using ONLY these actions:\n"
             " - get_weather(city: str)\n"
             " - calculator(expression: str)\n"
-            " - respond(text: str)  # use when a direct written answer is enough\n\n"
             "Return STRICT JSON with this schema:\n"
             "{{\n"
             '  "steps": [\n'
@@ -86,7 +87,7 @@ planner_prompt = ChatPromptTemplate.from_messages(
         ("human", "Task: {task}")
     ]
 )
-
+# LCEL
 planner_chain = planner_prompt | llm | JsonOutputParser()  # strict JSON parsing
 
 
@@ -153,22 +154,25 @@ summarizer_chain = summarizer_prompt | llm | StrOutputParser()
 
 def plan_execute_answer(user_task: str) -> str:
     # 1) Plan
-    try:
-        plan = planner_chain.invoke({"task": user_task})
-        # print("Generated Plan:", json.dumps(plan, ensure_ascii=False, indent=2))  # Debug: see the raw plan
-        # planner_chain already returns a Python dict via JsonOutputParser
-        if isinstance(plan, str):
-            plan = json.loads(plan)
-    except Exception as e:
-        # If planning fails, create a trivial respond plan
-        plan = {"steps": [{"id": 1, "action": "respond", "args": {"text": f"Planning failed: {e}"}}]}
+    with trace("planning"):
+        try:
+            plan = planner_chain.invoke({"task": user_task})
+            # print("Generated Plan:", json.dumps(plan, ensure_ascii=False, indent=2))  # Debug: see the raw plan
+            # planner_chain already returns a Python dict via JsonOutputParser
+            if isinstance(plan, str):
+                plan = json.loads(plan)
+        except Exception as e:
+            # If planning fails, create a trivial respond plan
+            plan = {"steps": [{"id": 1, "action": "respond", "args": {"text": f"Planning failed: {e}"}}]}
 
     # 2) Execute
-    logs = execute_plan(plan)
+    with trace("execution"):
+        logs = execute_plan(plan)
 
     # 3) Summarize final answer
-    logs_json = json.dumps(logs, ensure_ascii=False, indent=2)
-    final_answer = summarizer_chain.invoke({"task": user_task, "logs_json": logs_json})
+    with trace("summarization"):
+        logs_json = json.dumps(logs, ensure_ascii=False, indent=2)
+        final_answer = summarizer_chain.invoke({"task": user_task, "logs_json": logs_json})
     return final_answer
 
 
