@@ -80,12 +80,13 @@ inner_agent = create_agent(
 # =========================
 # 4) Outer nodes
 # =========================
-def agent_node(state: AgentState) -> AgentState:
+async def agent_node(state: AgentState) -> AgentState:
     """
     Call the inner agent with the current messages.
     Append only the final AI message to the outer state.
     """
-    result = inner_agent.invoke({"messages": state["messages"]})
+    print("state before agent_node:", state)
+    result = await inner_agent.ainvoke({"messages": state["messages"]})
 
     final_ai = None
     if isinstance(result, dict) and "messages" in result and result["messages"]:
@@ -94,14 +95,17 @@ def agent_node(state: AgentState) -> AgentState:
     elif isinstance(result, AIMessage):
         final_ai = result
 
-    return {"messages": [final_ai]} if final_ai else {"messages": []}
+    final_result = {"messages": [final_ai]} if final_ai else {"messages": []}
+    print("state after agent_node:", final_result)
+    return final_result
 
 
-def concise_node(state: AgentState) -> AgentState:
+async def concise_node(state: AgentState) -> AgentState:
     """
     Rewrite the last AI message to one sentence (post‑processing).
     Demonstrates a second node and conditional routing after 'agent'.
     """
+    print("state before concise_node:", state)
     if not state["messages"]:
         return {"messages": []}
 
@@ -114,9 +118,11 @@ def concise_node(state: AgentState) -> AgentState:
         ("system", "Rewrite the assistant's answer in ONE short sentence. Keep key numbers."),
         ("human", f"Answer:\n{last_ai.content}")
     ]
-    rewritten = rewrite_llm.invoke(prompt_msgs)
+    rewritten = await rewrite_llm.ainvoke(prompt_msgs)
     # Append the new concise AI message (delta)
-    return {"messages": [AIMessage(content=rewritten.content)]}
+    concise_result = {"messages": [AIMessage(content=rewritten.content)]}
+    print("state after concise_node:", concise_result)
+    return concise_result
 
 
 # =========================
@@ -155,16 +161,16 @@ def route_after_agent(state: AgentState) -> str:
 # 6) Build & compile the outer graph
 # =========================
 def build_graph():
-    g = StateGraph(AgentState)
+    graph = StateGraph(AgentState)
 
-    g.add_node("agent", agent_node)
-    g.add_node("concise", concise_node)
+    graph.add_node("agent", agent_node)
+    graph.add_node("concise", concise_node)
 
     # START -> agent
-    g.add_edge(START, "agent")
+    graph.add_edge(START, "agent")
 
     # Conditional: agent -> (concise | END)
-    g.add_conditional_edges(
+    graph.add_conditional_edges(
         "agent",
         route_after_agent,
         {
@@ -174,6 +180,11 @@ def build_graph():
     )
 
     # After concise rewrite, finish
-    g.add_edge("concise", END)
+    graph.add_edge("concise", END)
 
-    return g.compile()
+    # Compiling the graph optimizes it for execution and generates visualizations
+    compiled_graph = graph.compile()
+    # png_bytes = compiled_graph.get_graph().draw_mermaid_png()
+    # with open("graph_flow_mermaid.png", "wb") as f:
+    #     f.write(png_bytes)
+    return compiled_graph
