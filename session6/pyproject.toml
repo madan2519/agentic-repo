@@ -1,0 +1,12 @@
+[project]
+name = "learning-course"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain>=1.2.7",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.1.7",
+    "langchain-pinecone>=0.2.13",
+]
