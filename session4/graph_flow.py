@@ -24,6 +24,7 @@ load_dotenv()
 class AgentState(TypedDict):
     # We keep a running conversation. Each node appends only its new messages.
     messages: Annotated[List[AnyMessage], add_messages]
+    # name: str  # Just to show we can have other state variables if needed
 
 
 # =========================
